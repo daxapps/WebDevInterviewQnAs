@@ -1,2 +1,9 @@
 language: node_js
-node_js: node 
+node_js: node
+deploy:
+  provider: heroku
+  api_key:
+    secure: ekHQE7kuw2L2XzAPaOeT7xHJfPbpVqD2E/f0RupL3tjtw6YsCMbKOGuNp6psixqPgPjL6vqOjnZEFxQ5Tb+lH1yg7JMPACqfw2RzJH4b43ekDrMc2eOzFv4JRVmk0iXeyeUukaM3RLN+Iz0ZSGKRpEhyMRqvkXQSdB2saBUSqwz+fjBVzMB+6mxLeJBQ8qNWVu+kY8ROCl7auU4Vy43AWQY/lUfH6EoWtGi5gjAEYfTNfhw8s8lvq1gRGcy8CSlTuh0vTReciux/jnQ7tQUrugzkjEIR8eVRe6ME/T+FrgikRtBEPwNqGuILLk632szrweFzo08tgiMvLNxAzIrLYE6ahIiEc2+IlCyiw/HEduJ/yppx/oNpr/n3nb3smDvj7yybD1k79O5BmDXjk3YTkuuhKUpHOPy+1FhmylaFBYu0mmBKkWCPqQkIM/jb6Q6lcjNcaasiueWAeXlpQkh3aOE9SrZqgFy1PVz1FGiQHjspdWM5l0WgWUGHQy7D2hpwKEl5gD4s39zWo4MfHZFTnvftzUDaOI631RYqecsQh8UuUmYgGFmIJdTE94DUgrvus/eiYghjrN37S1ziYvftZbeWTI+inmCXSwDb+OentQvqC9xmMslTpaQEcPIs2yOU3lJExJ/Cxrsp0LYtNJ+Rmf0+2OfGPqs1YWdBFXon18Y=
+  app: desolate-dawn-31943
+  on:
+    repo: daxapps/WebDevInterviewQnAs
