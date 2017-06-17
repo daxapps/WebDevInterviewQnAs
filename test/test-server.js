@@ -1,27 +1,203 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-
-const {app, runServer, closeServer} = require('../server');
+const mongoose = require('mongoose');
 
 const should = chai.should();
 
+const {Account} = require('../models/account');
+const {app, runServer, closeServer} = require('../server');
+const {TEST_DATABASE_URL} = require('../config');
+const request = require('supertest');
+const api = request(app);
+const authUser = request.agent(app);
+
 chai.use(chaiHttp);
 
-describe('GET endpoint', function() {
+const tearDownDb = () => {
+	console.warn('Deleting database');
+	return mongoose.connection.dropDatabase();
+}
+
+describe('Test', function() {
+	this.timeout(15000);
+
 	before(function() {
-		return runServer();
+		return runServer(TEST_DATABASE_URL);
 	});
 
 	after(function() {
+		tearDownDb();
 		return closeServer();
 	});
 
-	it('should return 200 status', function() {
-		return chai.request(app)
-			.get('/')
-			.then(function(res) {
-				res.should.have.status(200);
-				res.should.be.html;
+	describe('testing user authentication', () => {
+		it('should create a user', () => {
+			return api
+			.post('/register')
+			.send({username:'email@email.com', firstName: 'test@test.com', password: 'test'})
+			.expect(302)
+			.expect('Location', '/dashboard');
+		});
+	});
+
+	describe('login a user', () => {
+		it('should login a user', () => {
+			return api
+			.post('/login')
+			.send({username: 'email@email.com', password: 'test'})
+			.expect(302)
+			.expect('Location', '/dashboard');
+		});
+	});
+	describe('add an entry', () => {
+		it('should add a entry', () => {
+			return authUser
+			.post('/login')
+			.send({username: 'email@email.com', password: 'test' })
+			.expect(302)
+			.expect('Location', '/dashboard')
+			.then(res => {
+				return authUser
+				.post('/addEntry')
+				.send({ mood: 'happy', activity: [ 'art', 'games' ], journal: 'sup' })
+				.expect(302)
+				.expect('Location', '/log');
 			})
-	})
-})
+			.then(res => {
+				return Account
+				.findOne({username: 'email@email.com'})
+				.exec()
+				.then(user => {
+					console.log(user.entries[0].mood)
+					describe('user exist', () => {
+						it('user should have mood', () => {
+
+							user.entries[0].mood.should.not.have.length(0);
+						})
+					})
+				})
+			})
+			.catch(err => {
+				if (err) console.log('Something went wrong: ' + err)
+			});
+		});
+	});
+	describe('edit a entry', () => {
+		it('should edit a log', () => {
+			let editUrl;
+			let reqBody = { 
+				mood: 'amused',
+				activity: [ 'art', 'games', 'read' ],
+				journal: 'post this? ' 
+			}
+			return authUser
+			.post('/login')
+			.send({username: 'email@email.com', password: 'test' })
+			.expect(302)
+			.expect('Location', '/dashboard')
+			.then((res, err) => {
+				return Account
+				.findOne({username: 'email@email.com'})
+				.exec()
+				.then(user => {
+					console.log('in edit') 
+					date = user.entries[0].date; 
+					editUrl = '/edit/'+date;
+					console.log(editUrl); 
+
+				})
+				.catch(err => {
+					if (err) {
+						console.log('Something went wrong' + err)
+					}
+				});
+			})
+			.then(res => {
+				return authUser
+						.post(editUrl)//'/edit/:date'
+						.send(reqBody)
+						.expect(302)
+						.expect('Location', '/log');
+					})
+			.then(res => {
+				return Account
+				.findOne({username: 'email@email.com'})
+				.exec()
+				.then(user => {
+					describe('check edit', () => {
+						it('mood should equal value', () => {
+							user.entries[0].mood.should.eql('amused');
+						})
+					})
+				})
+				.catch(err => {
+					if (err) console.log('Something went wrong: ' + err);
+				});
+
+			})				
+			.catch(err => {
+				if (err) {
+					console.log('Something went wrong: ' + err);
+				}
+			});
+		});
+
+		describe('delete a entry', () => {
+			it('should remove a log', () => {
+				let deleteUrl;
+				return authUser
+				.post('/login')
+				.send({username: 'email@email.com', password: 'test' })
+				.expect(302)
+				.expect('Location', '/dashboard')
+				.then((res, err) => {
+					return Account
+					.findOne({username: 'email@email.com'})
+					.exec()
+					.then(user => {
+						console.log('in delete') 
+						date = user.entries[0].date; 
+						deleteUrl = '/delete/'+date;
+						console.log(deleteUrl); 
+
+					})
+					.catch(err => {
+						if (err) {
+							console.log('Something went wrong' + err)
+						}
+					});
+				})
+				.then(res => {
+					return authUser
+						.get(deleteUrl)//'/edit/:date'
+						//.send(reqBody)
+						.expect(302)
+						.expect('Location', '/log');
+					})
+				.then(res => {
+
+					return Account
+					.findOne({username: 'email@email.com'})
+
+					.exec()
+					.then(user => {
+						describe('check delete', () => {
+							it('mood should equal value', () => {
+								user.entries.length.should.equal(0)
+											
+							})
+						})
+					})
+					.catch(err => {
+						if (err) console.log('Something went wrong: ' + err);
+					});
+				})				
+				.catch(err => {
+					if (err) {
+						console.log('Something went wrong: ' + err);
+					}
+				});
+			});	
+		});
+	});
+});
